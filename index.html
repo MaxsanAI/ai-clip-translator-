@@ -48,7 +48,7 @@ select,button{
   font-size:15px;
 }
 select{
-  height:140px;
+  height:160px;
 }
 button{
   background:#6366f1;
@@ -174,18 +174,34 @@ const ffmpeg = createFFmpeg({ log: true });
 
 async function burnInVideo(videoFile, srtContent){
   const status = document.getElementById("status");
-  if(!ffmpeg.isLoaded()){status.innerHTML="Loading FFmpeg..."; await ffmpeg.load();}
-  ffmpeg.FS('writeFile','input.mp4', await fetchFile(videoFile));
-  ffmpeg.FS('writeFile','subs.srt', srtContent);
-  status.innerHTML="Burning subtitles...";
-  await ffmpeg.run('-i','input.mp4','-vf','subtitles=subs.srt','output.mp4');
-  const data = ffmpeg.FS('readFile','output.mp4');
-  const url = URL.createObjectURL(new Blob([data.buffer], {type:'video/mp4'}));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download='video_subtitled.mp4';
-  a.click();
-  status.innerHTML="Video ready with subtitles!";
+  try {
+    if(!ffmpeg.isLoaded()){
+      status.innerHTML = "Loading FFmpeg...";
+      await ffmpeg.load();
+    }
+
+    status.innerHTML = "Burning subtitles...";
+
+    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+    ffmpeg.FS('writeFile', 'subs.srt', srtContent);
+
+    await ffmpeg.run('-i','input.mp4','-vf','subtitles=subs.srt','output.mp4');
+
+    const data = ffmpeg.FS('readFile','output.mp4');
+    const url = URL.createObjectURL(new Blob([data.buffer], {type:'video/mp4'}));
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'video_subtitled.mp4';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    status.innerHTML = "Burn-in complete! Video downloaded.";
+  } catch(err){
+    console.error(err);
+    status.innerHTML = "Error burning subtitles!";
+  }
 }
 
 // ---- Main video processing ----
