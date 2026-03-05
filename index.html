@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Video Translator</title>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.11/dist/ffmpeg.min.js"></script>
 <style>
 body{
 font-family:Arial, Helvetica, sans-serif;
@@ -76,6 +77,7 @@ transition:0.3s;
 margin-top:12px;
 text-align:center;
 color:#94a3b8;
+word-break:break-word;
 }
 .footer{
 margin-top:15px;
@@ -113,13 +115,8 @@ or click to upload
 </select>
 
 <button onclick="processVideo()">Process Video</button>
-
-<div class="progress">
-<div class="bar" id="bar"></div>
-</div>
-
+<div class="progress"><div class="bar" id="bar"></div></div>
 <div id="status" class="status"></div>
-
 <div class="footer">
 Free version: 3 minute video • 2 videos per day • max 3 languages
 </div>
@@ -138,10 +135,7 @@ dropzone.innerHTML=file.name
 checkVideo()
 }
 
-dropzone.ondragover=e=>{
-e.preventDefault()
-}
-
+dropzone.ondragover=e=>{e.preventDefault()}
 dropzone.ondrop=e=>{
 e.preventDefault()
 file=e.dataTransfer.files[0]
@@ -156,39 +150,50 @@ const video=document.createElement("video")
 video.preload="metadata"
 video.onloadedmetadata=function(){
 window.URL.revokeObjectURL(video.src)
-if(video.duration>180){
-status.innerHTML="Video must be under 3 minutes"
-file=null
-}
+if(video.duration>180){status.innerHTML="Video must be under 3 minutes";file=null}
 }
 video.src=URL.createObjectURL(file)
 }
 
+// ---- FFmpeg setup for burn-in subtitles ----
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: true });
+
+async function burnInVideo(videoFile, srtContent){
+  const status = document.getElementById("status");
+  if(!ffmpeg.isLoaded()){status.innerHTML="Loading FFmpeg..."; await ffmpeg.load();}
+
+  ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+  ffmpeg.FS('writeFile', 'subs.srt', srtContent);
+
+  status.innerHTML="Burning subtitles...";
+  await ffmpeg.run('-i','input.mp4','-vf','subtitles=subs.srt','output.mp4');
+
+  const data = ffmpeg.FS('readFile','output.mp4');
+  const url = URL.createObjectURL(new Blob([data.buffer], {type:'video/mp4'}));
+  const a = document.createElement('a');
+  a.href=url;
+  a.download='video_subtitled.mp4';
+  a.click();
+  status.innerHTML="Video ready with subtitles!";
+}
+
+// ---- Main video processing ----
 async function processVideo(){
 const languages=[...document.getElementById("languageSelect").selectedOptions]
 const status=document.getElementById("status")
 const bar=document.getElementById("bar")
 
-if(!file){
-status.innerHTML="Upload a video first"
-return
-}
-
-if(languages.length===0){
-status.innerHTML="Select at least one language"
-return
-}
-
-if(languages.length>3){
-status.innerHTML="Free version allows max 3 languages"
-return
-}
+if(!file){status.innerHTML="Upload a video first";return}
+if(languages.length===0){status.innerHTML="Select at least one language";return}
+if(languages.length>3){status.innerHTML="Free version allows max 3 languages";return}
 
 status.innerHTML="Uploading video..."
 bar.style.width="0%"
 
 const formData=new FormData()
 formData.append("video",file)
+languages.forEach(lang=>formData.append("languages",lang))
 
 try{
 const xhr=new XMLHttpRequest()
@@ -202,10 +207,22 @@ status.innerHTML=`Uploading video... ${percent}%`
 }
 }
 
-xhr.onload=function(){
+xhr.onload=async function(){
 if(xhr.status===200){
-status.innerHTML="Upload complete! (AI processing coming next)"
-bar.style.width="100%"
+const res=JSON.parse(xhr.responseText)
+status.innerHTML="Upload complete! Generating SRT...";
+bar.style.width="100%";
+
+for(const lang in res.subtitles){
+  const srtContent=res.subtitles[lang];
+  const link = document.createElement("a");
+  link.href="#";
+  link.innerHTML=`Download ${lang} SRT`;
+  link.onclick=()=>burnInVideo(file,srtContent);
+  status.appendChild(link);
+  status.appendChild(document.createElement("br"));
+}
+
 }else{
 status.innerHTML="Upload failed"
 bar.style.width="0%"
@@ -213,13 +230,8 @@ bar.style.width="0%"
 }
 
 xhr.send(formData)
-
-}catch(err){
-status.innerHTML="Error uploading video"
-console.error(err)
-}
+}catch(err){status.innerHTML="Error uploading video";console.error(err)}
 }
 </script>
-
 </body>
 </html>
