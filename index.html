@@ -156,27 +156,28 @@ async function burnSubtitles(){
   const statusDiv=document.getElementById("videoDownloads");
   statusDiv.innerHTML="Burning subtitles in browser...";
 
-  // Pretpostavljamo da već imaš SRT za izabrani jezik
-  const srtFile = [...document.querySelectorAll('.download a')]
-                    .find(a => a.download.startsWith(lang))
-                    ?.href;
-  if(!srtFile){alert("SRT file not found!"); return;}
+  // Pronađi SRT Blob umesto href
+  const srtLink = [...document.querySelectorAll('.download a')]
+                    .find(a => a.download.startsWith(lang));
+  if(!srtLink){alert("SRT file not found!"); return;}
+  const srtResponse = await fetch(srtLink.href);
+  const srtBlob = await srtResponse.blob();
 
   // Load ffmpeg
   if(!ffmpeg.isLoaded()) await ffmpeg.load();
 
   // Pretvori video i SRT u Uint8Array
   const videoData = await fetchFile(currentVideo);
-  const srtData = await fetchFile(srtFile);
+  const srtData = new Uint8Array(await srtBlob.arrayBuffer());
 
   // Write video i subtitle u FFmpeg FS
   ffmpeg.FS('writeFile', 'input.mp4', videoData);
   ffmpeg.FS('writeFile', 'subs.srt', srtData);
 
-  // Pokreni burn-in
+  // Burn-in
   await ffmpeg.run('-i','input.mp4','-vf',`subtitles=subs.srt:force_style='FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF&'`,'output.mp4');
 
-  // Uzmi rezultat i download
+  // Download
   const data = ffmpeg.FS('readFile','output.mp4');
   const url = URL.createObjectURL(new Blob([data.buffer], {type: 'video/mp4'}));
   const a = document.createElement('a');
