@@ -6,58 +6,21 @@
 <title>AI Translator Tools</title>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.11/dist/ffmpeg.min.js"></script>
 <style>
-body{
-  font-family:Arial, Helvetica, sans-serif;
-  background:linear-gradient(135deg,#020617,#0f172a);
-  color:white;
-  text-align:center;
-  padding:20px;
-  margin:0;
-}
-.container{
-  max-width:800px;
-  margin:auto;
-  background:#1e293b;
-  padding:25px;
-  border-radius:20px;
-  box-shadow:0 20px 50px rgba(0,0,0,0.6);
-}
+body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#020617,#0f172a);color:white;text-align:center;padding:20px;margin:0;}
+.container{max-width:800px;margin:auto;background:#1e293b;padding:25px;border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,0.6);}
 h1{margin-bottom:25px;}
-.tool{
-  margin-bottom:40px;
-  padding:20px;
-  background:#0f172a;
-  border-radius:15px;
-}
-button{
-  background:#6366f1;
-  border:none;
-  padding:12px 25px;
-  color:white;
-  font-size:15px;
-  border-radius:8px;
-  cursor:pointer;
-  margin-top:10px;
-}
+.tool{margin-bottom:40px;padding:20px;background:#0f172a;border-radius:15px;}
+button{background:#6366f1;border:none;padding:12px 25px;color:white;font-size:15px;border-radius:8px;cursor:pointer;margin-top:10px;}
 button:hover{background:#4f46e5;}
-select,input,textarea{
-  margin:10px;
-  padding:10px;
-  border-radius:6px;
-  border:none;
-  width:90%;
-  max-width:400px;
-}
+select,input,textarea{margin:10px;padding:10px;border-radius:6px;border:none;width:90%;max-width:400px;}
 .download{margin-top:15px;}
-video{margin-top:15px; max-width:100%; border-radius:10px;}
+video{margin-top:15px;max-width:100%;border-radius:10px;}
 </style>
 </head>
-
 <body>
 <div class="container">
 <h1>AI Translator Tools</h1>
 
-<!-- VIDEO TRANSLATOR -->
 <div class="tool">
 <h2>🎬 Video Translator</h2>
 <input type="file" id="videoInput" accept="video/*"><br>
@@ -76,13 +39,11 @@ video{margin-top:15px; max-width:100%; border-radius:10px;}
 <button onclick="burnSubtitles()">Burn Subtitles Into Video</button>
 <div id="videoDownloads"></div>
 
-<!-- Preview -->
 <video id="videoPreview" controls></video><br>
-<textarea id="srtEditor" rows="10" placeholder="Edit SRT here if needed"></textarea>
+<textarea id="srtEditor" rows="10" placeholder="Edit SRT here"></textarea>
 <button onclick="applySrtEdits()">Apply SRT Edits</button>
 </div>
 
-<!-- YOUTUBE TOOL -->
 <div class="tool">
 <h2>📺 YouTube Subtitle Generator</h2>
 <input type="text" id="youtubeURL" placeholder="Paste YouTube link"><br>
@@ -101,7 +62,6 @@ video{margin-top:15px; max-width:100%; border-radius:10px;}
 <div id="ytDownload"></div>
 </div>
 
-<!-- DOCUMENT TRANSLATOR -->
 <div class="tool">
 <h2>📄 Document Translator</h2>
 <input type="file" id="docInput"><br>
@@ -119,17 +79,41 @@ video{margin-top:15px; max-width:100%; border-radius:10px;}
 <button onclick="translateDoc()">Translate Document</button>
 <div id="docDownload"></div>
 </div>
-
 </div>
 
 <script>
 const API="https://video-translator-api.maximhot.workers.dev/"
-let currentVideo=null;
-let currentLang=null;
-const srtCache = {}; // čuva generisane SRT
+let currentVideo = null;
+let currentLang = null;
+const srtCache = {};
+let worker = null;
 
-// ---- VIDEO SRT ----
-async function generateSRT(langOnly) {
+// --- Video preview ---
+function srt2vtt(srtText){
+  return "WEBVTT\n\n" + srtText.replace(/\r+/g,'').split("\n\n").map(block=>{
+    const lines = block.split("\n");
+    if(lines.length >=2) lines[1] = lines[1].replace(',', '.');
+    return lines.join("\n");
+  }).join("\n\n");
+}
+
+function showVideoPreview(videoFile, srtText){
+  const videoEl = document.getElementById("videoPreview");
+  const vtt = srt2vtt(srtText);
+  const trackBlob = new Blob([vtt],{type:'text/vtt'});
+  const trackURL = URL.createObjectURL(trackBlob);
+  videoEl.src = URL.createObjectURL(videoFile);
+  videoEl.innerHTML = `<track label="Subtitle" kind="subtitles" srclang="en" src="${trackURL}" default>`;
+  videoEl.load();
+}
+
+function applySrtEdits(){
+  srtCache[currentLang] = document.getElementById("srtEditor").value;
+  showVideoPreview(currentVideo, srtCache[currentLang]);
+}
+
+// --- Video SRT ---
+async function generateSRT(langOnly){
   const file=document.getElementById("videoInput").files[0];
   if(!file){alert("Upload video first"); return;}
   currentVideo=file;
@@ -149,95 +133,47 @@ async function generateSRT(langOnly) {
     html+=`<div class="download"><a href="${url}" download="${lang}.srt"><button>Download ${lang.toUpperCase()} SRT</button></a></div>`;
   }
   statusDiv.innerHTML=html;
-
-  // Preview za prvi jezik
   if(!currentLang) currentLang = langs[0];
   document.getElementById("srtEditor").value = srtCache[currentLang];
   showVideoPreview(currentVideo, srtCache[currentLang]);
 }
 
-// ---- Video Preview ----
-function srt2vtt(srtText){
-  return "WEBVTT\n\n" + srtText
-      .replace(/\r+/g, '')
-      .split("\n\n")
-      .map(block => {
-        const lines = block.split("\n");
-        if(lines.length >= 2){
-          const time = lines[1].replace(',', '.');
-          lines[1] = time.replace(/(\d{2}:\d{2}:\d{2})\.(\d{3})/g, '$1.$2');
-        }
-        return lines.join("\n");
-      }).join("\n\n");
-}
-
-function showVideoPreview(videoFile, srtText){
-  const videoEl = document.getElementById("videoPreview");
-  const srtVtt = srt2vtt(srtText);
-  const vttBlob = new Blob([srtVtt], {type: 'text/vtt'});
-  const vttUrl = URL.createObjectURL(vttBlob);
-  videoEl.src = URL.createObjectURL(videoFile);
-  videoEl.innerHTML = `<track label="Subtitle" kind="subtitles" srclang="en" src="${vttUrl}" default>`;
-  videoEl.load();
-}
-
-// ---- Apply SRT edits ----
-function applySrtEdits(){
-  const editedSrt = document.getElementById("srtEditor").value;
-  srtCache[currentLang] = editedSrt;
-  showVideoPreview(currentVideo, editedSrt);
-}
-
-// ---- BURN-IN VIDEO ----
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
-
+// --- Burn-in using Worker ---
 async function burnSubtitles(){
-  if(!currentVideo){alert("Upload video first"); return;}
-  const lang=[...document.getElementById("langSelect").selectedOptions][0].value;
-  currentLang = lang;
-  const statusDiv=document.getElementById("videoDownloads");
-  statusDiv.innerHTML="Processing SRT and burning subtitles...";
+  if(!currentVideo || !currentLang){ alert("Video ili jezik nisu izabrani"); return; }
+  const srtText = srtCache[currentLang];
+  if(!srtText){ alert("Nema SRT za burn-in"); return; }
 
-  // Ako nema SRT, generiši odmah
-  if(!srtCache[lang]){
-    await generateSRT(lang);
-  }
-  const srtText = srtCache[lang];
-  const srtData = new Uint8Array(new TextEncoder().encode(srtText));
+  const statusDiv = document.getElementById("videoDownloads");
+  statusDiv.innerHTML = "Processing SRT and burning subtitles...";
 
-  if(!ffmpeg.isLoaded()) await ffmpeg.load();
+  if(!worker) worker = new Worker('burnWorker.js');
 
-  const videoData = await fetchFile(currentVideo);
+  worker.onmessage = (e) => {
+    if(e.data.error){
+      statusDiv.innerHTML = "Error: " + e.data.error;
+      return;
+    }
+    const buffer = e.data.videoBuffer;
+    const url = URL.createObjectURL(new Blob([buffer],{type:'video/mp4'}));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'video_subtitled.mp4';
+    a.click();
 
-  ffmpeg.FS('writeFile', 'input.mp4', videoData);
-  ffmpeg.FS('writeFile', 'subs.srt', srtData);
+    const srtBlob = new Blob([srtText], {type:'text/plain'});
+    const srtA = document.createElement('a');
+    srtA.href = URL.createObjectURL(srtBlob);
+    srtA.download = `${currentLang}.srt`;
+    srtA.click();
 
-  await ffmpeg.run('-i','input.mp4','-vf',`subtitles=subs.srt:force_style='FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF&'`,'output.mp4');
+    statusDiv.innerHTML = "Video ready!";
+  };
 
-  const data = ffmpeg.FS('readFile','output.mp4');
-  const url = URL.createObjectURL(new Blob([data.buffer], {type: 'video/mp4'}));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'video_subtitled.mp4';
-  a.click();
-
-  // SRT download
-  const srtBlob = new Blob([srtText], {type:'text/plain'});
-  const srtUrl = URL.createObjectURL(srtBlob);
-  const srtA = document.createElement('a');
-  srtA.href = srtUrl;
-  srtA.download = `${lang}.srt`;
-  srtA.textContent = `Download ${lang.toUpperCase()} SRT`;
-  const div = document.createElement('div');
-  div.className='download';
-  div.appendChild(srtA);
-  statusDiv.appendChild(div);
-
-  statusDiv.innerHTML+="<br>Video ready!";
+  worker.postMessage({ videoFile: currentVideo, srtText });
 }
 
-// ---- YOUTUBE SUBS ----
+// --- YouTube Subs ---
 async function youtubeSubs(){
   const url=document.getElementById("youtubeURL").value;
   const lang=document.getElementById("ytLang").value;
@@ -253,7 +189,7 @@ async function youtubeSubs(){
   statusDiv.innerHTML="YouTube SRT ready!";
 }
 
-// ---- DOCUMENT TRANSLATOR ----
+// --- Document Translator ---
 async function translateDoc(){
   const file=document.getElementById("docInput").files[0];
   if(!file){alert("Upload document"); return;}
@@ -267,12 +203,11 @@ async function translateDoc(){
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href=url;
+  a.href = url;
   a.download="translated.txt";
   a.click();
   statusDiv.innerHTML="Document ready!";
 }
 </script>
-
 </body>
 </html>
