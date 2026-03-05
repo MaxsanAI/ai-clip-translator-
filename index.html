@@ -2,14 +2,10 @@
 <html lang="en">
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>AI Video Translator</title>
-
 <style>
-
 body{
 font-family:Arial, Helvetica, sans-serif;
 background:linear-gradient(135deg,#020617,#0f172a);
@@ -20,107 +16,78 @@ align-items:center;
 height:100vh;
 margin:0;
 }
-
 .card{
-
 background:#1e293b;
 padding:30px;
 border-radius:20px;
 width:90%;
 max-width:420px;
 box-shadow:0 20px 50px rgba(0,0,0,0.6);
-
 }
-
 h1{
 text-align:center;
 margin-bottom:20px;
 }
-
 .dropzone{
-
 border:2px dashed #6366f1;
 padding:35px;
 border-radius:15px;
 text-align:center;
 cursor:pointer;
 color:#94a3b8;
-
 }
-
 .dropzone:hover{
 background:#0f172a;
 }
-
 select,button{
-
 width:100%;
 padding:12px;
 margin-top:12px;
 border-radius:10px;
 border:none;
 font-size:15px;
-
 }
-
 select{
 height:140px;
 }
-
 button{
 background:#6366f1;
 color:white;
 font-weight:bold;
 cursor:pointer;
 }
-
 button:hover{
 background:#4f46e5;
 }
-
 .progress{
-
 margin-top:15px;
 height:10px;
 background:#334155;
 border-radius:10px;
 overflow:hidden;
-
 }
-
 .bar{
-
 height:100%;
 width:0%;
 background:#22c55e;
-
+transition:0.3s;
 }
-
 .status{
-
 margin-top:12px;
 text-align:center;
 color:#94a3b8;
-
 }
-
 .footer{
-
 margin-top:15px;
 text-align:center;
 font-size:12px;
 color:#64748b;
-
 }
-
 </style>
-
 </head>
 
 <body>
-
 <div class="card">
-
 <h1>AI Video Translator</h1>
 
 <div class="dropzone" id="dropzone">
@@ -131,7 +98,6 @@ or click to upload
 </div>
 
 <select id="languageSelect" multiple>
-
 <option value="en">English</option>
 <option value="es">Spanish</option>
 <option value="de">German</option>
@@ -144,7 +110,6 @@ or click to upload
 <option value="tr">Turkish</option>
 <option value="ar">Arabic</option>
 <option value="zh">Chinese</option>
-
 </select>
 
 <button onclick="processVideo()">Process Video</button>
@@ -158,14 +123,11 @@ or click to upload
 <div class="footer">
 Free version: 3 minute video • 2 videos per day • max 3 languages
 </div>
-
 </div>
 
 <script>
-
 const dropzone=document.getElementById("dropzone")
 const input=document.getElementById("videoInput")
-
 let file=null
 
 dropzone.onclick=()=>input.click()
@@ -182,106 +144,81 @@ e.preventDefault()
 
 dropzone.ondrop=e=>{
 e.preventDefault()
-
 file=e.dataTransfer.files[0]
 dropzone.innerHTML=file.name
-
 checkVideo()
 }
 
 function checkVideo(){
-
 const status=document.getElementById("status")
-
 if(!file) return
-
 const video=document.createElement("video")
-
 video.preload="metadata"
-
 video.onloadedmetadata=function(){
-
 window.URL.revokeObjectURL(video.src)
-
 if(video.duration>180){
-
 status.innerHTML="Video must be under 3 minutes"
 file=null
-
 }
-
 }
-
 video.src=URL.createObjectURL(file)
-
 }
 
-function processVideo(){
-
+async function processVideo(){
 const languages=[...document.getElementById("languageSelect").selectedOptions]
-
 const status=document.getElementById("status")
 const bar=document.getElementById("bar")
 
 if(!file){
-
 status.innerHTML="Upload a video first"
 return
-
 }
 
 if(languages.length===0){
-
 status.innerHTML="Select at least one language"
 return
-
 }
 
 if(languages.length>3){
-
 status.innerHTML="Free version allows max 3 languages"
 return
-
 }
 
 status.innerHTML="Uploading video..."
+bar.style.width="0%"
 
-let progress=0
+const formData=new FormData()
+formData.append("video",file)
 
-const interval=setInterval(()=>{
+try{
+const xhr=new XMLHttpRequest()
+xhr.open("POST","https://video-translator-api.maximhot.workers.dev/",true)
 
-progress+=10
-
-bar.style.width=progress+"%"
-
-if(progress===30){
-status.innerHTML="Analyzing speech..."
+xhr.upload.onprogress=function(e){
+if(e.lengthComputable){
+const percent=Math.round((e.loaded/e.total)*100)
+bar.style.width=percent+"%"
+status.innerHTML=`Uploading video... ${percent}%`
+}
 }
 
-if(progress===60){
-status.innerHTML="Generating subtitles..."
+xhr.onload=function(){
+if(xhr.status===200){
+status.innerHTML="Upload complete! (AI processing coming next)"
+bar.style.width="100%"
+}else{
+status.innerHTML="Upload failed"
+bar.style.width="0%"
+}
 }
 
-if(progress===80){
-status.innerHTML="Translating languages..."
+xhr.send(formData)
+
+}catch(err){
+status.innerHTML="Error uploading video"
+console.error(err)
 }
-
-if(progress===95){
-status.innerHTML="Preparing video..."
 }
-
-if(progress>=100){
-
-clearInterval(interval)
-
-status.innerHTML="Done! (AI processing coming next)"
-
-}
-
-},500)
-
-}
-
 </script>
 
 </body>
