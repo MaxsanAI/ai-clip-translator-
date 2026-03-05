@@ -11,20 +11,21 @@ body{
   background:linear-gradient(135deg,#020617,#0f172a);
   color:white;
   text-align:center;
-  padding:30px;
+  padding:20px;
+  margin:0;
 }
 .container{
   max-width:800px;
   margin:auto;
   background:#1e293b;
-  padding:30px;
+  padding:25px;
   border-radius:20px;
   box-shadow:0 20px 50px rgba(0,0,0,0.6);
 }
-h1{margin-bottom:30px;}
+h1{margin-bottom:25px;}
 .tool{
   margin-bottom:40px;
-  padding:25px;
+  padding:20px;
   background:#0f172a;
   border-radius:15px;
 }
@@ -39,10 +40,18 @@ button{
   margin-top:10px;
 }
 button:hover{background:#4f46e5;}
-select,input{margin:10px;padding:10px;border-radius:6px;border:none;}
+select,input{
+  margin:10px;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+  width:90%;
+  max-width:400px;
+}
 .download{margin-top:15px;}
 </style>
 </head>
+
 <body>
 <div class="container">
 <h1>AI Translator Tools</h1>
@@ -62,7 +71,7 @@ select,input{margin:10px;padding:10px;border-radius:6px;border:none;}
 <option value="ja">Japanese</option>
 <option value="sv">Swedish</option>
 </select><br>
-<button onclick="generateSRT()">Generate Subtitles</button>
+<button onclick="generateSRT()">Generate SRT</button>
 <button onclick="burnSubtitles()">Burn Subtitles Into Video</button>
 <div id="videoDownloads"></div>
 </div>
@@ -109,11 +118,9 @@ select,input{margin:10px;padding:10px;border-radius:6px;border:none;}
 
 <script>
 const API="https://video-translator-api.maximhot.workers.dev/"
-let currentVideo=null;
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
+let currentVideo=null
 
-// -------- VIDEO SRT --------
+// ---- VIDEO SRT ----
 async function generateSRT(){
   const file=document.getElementById("videoInput").files[0];
   if(!file){alert("Upload video first"); return;}
@@ -122,7 +129,8 @@ async function generateSRT(){
   const form=new FormData();
   form.append("video",file);
   langs.forEach(l=>form.append("languages",l));
-  document.getElementById("videoDownloads").innerHTML="Generating subtitles...";
+  const statusDiv=document.getElementById("videoDownloads");
+  statusDiv.innerHTML="Generating subtitles...";
   const res=await fetch(API,{method:"POST",body:form});
   const data=await res.json();
   let html="";
@@ -132,52 +140,48 @@ async function generateSRT(){
     const url=URL.createObjectURL(blob);
     html+=`
       <div class="download">
-        <a href="${url}" download="${lang}.srt">
-          <button>Download ${lang.toUpperCase()} SRT</button>
-        </a>
+        <a href="${url}" download="${lang}.srt"><button>Download ${lang.toUpperCase()} SRT</button></a>
       </div>`;
   }
-  document.getElementById("videoDownloads").innerHTML=html;
+  statusDiv.innerHTML=html;
 }
 
-// -------- BURN-IN VIDEO --------
+// ---- BURN-IN VIDEO ----
 async function burnSubtitles(){
   if(!currentVideo){alert("Generate subtitles first"); return;}
   const lang=[...document.getElementById("langSelect").selectedOptions][0].value;
   const form=new FormData();
   form.append("video",currentVideo);
   form.append("burn",lang);
-  document.getElementById("videoDownloads").innerHTML="Burning subtitles...";
+  const statusDiv=document.getElementById("videoDownloads");
+  statusDiv.innerHTML="Burning subtitles...";
   const res=await fetch(API+"burn",{method:"POST",body:form});
   const data=await res.json();
-  // Worker vraća signed URL koji važi 10 minuta
-  document.getElementById("videoDownloads").innerHTML=`
-    <div class="download">
-      <a href="${data.url}" target="_blank">
-        <button>Download Video With Subtitles</button>
-      </a>
-    </div>`;
+  // Direktni download
+  const a = document.createElement('a');
+  a.href = data.url;
+  a.download = 'video_subtitled.mp4';
+  a.click();
+  statusDiv.innerHTML="Video ready!";
 }
 
-// -------- YOUTUBE SUBS --------
+// ---- YOUTUBE SUBS ----
 async function youtubeSubs(){
   const url=document.getElementById("youtubeURL").value;
   const lang=document.getElementById("ytLang").value;
   if(!url){alert("Paste YouTube link"); return;}
-  document.getElementById("ytDownload").innerHTML="Generating...";
+  const statusDiv=document.getElementById("ytDownload");
+  statusDiv.innerHTML="Generating subtitles...";
   const res=await fetch(API+"youtube",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url,lang:lang})});
   const data=await res.json();
-  const blob=new Blob([data.srt],{type:"text/plain"});
-  const link = URL.createObjectURL(blob);
-  document.getElementById("ytDownload").innerHTML=`
-    <div class="download">
-      <a href="${link}" download="youtube_${lang}.srt">
-        <button>Download SRT</button>
-      </a>
-    </div>`;
+  const a = document.createElement('a');
+  a.href = data.srt;
+  a.download = 'youtube_subs.srt';
+  a.click();
+  statusDiv.innerHTML="YouTube SRT ready!";
 }
 
-// -------- DOCUMENT TRANSLATOR --------
+// ---- DOCUMENT TRANSLATOR ----
 async function translateDoc(){
   const file=document.getElementById("docInput").files[0];
   if(!file){alert("Upload document"); return;}
@@ -185,14 +189,16 @@ async function translateDoc(){
   const form=new FormData();
   form.append("document",file);
   form.append("target",lang);
-  document.getElementById("docDownload").innerHTML="Translating...";
+  const statusDiv=document.getElementById("docDownload");
+  statusDiv.innerHTML="Translating...";
   const res=await fetch(API+"doc",{method:"POST",body:form});
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
-  document.getElementById("docDownload").innerHTML=`
-    <a href="${url}" download="translated.txt">
-      <button>Download Translated Document</button>
-    </a>`;
+  const a = document.createElement('a');
+  a.href=url;
+  a.download="translated.txt";
+  a.click();
+  statusDiv.innerHTML="Document ready!";
 }
 </script>
 
