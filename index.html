@@ -4,16 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Translator Tools</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.11/dist/ffmpeg.min.js"></script>
-
 <style>
 body{
   font-family:Arial, Helvetica, sans-serif;
   background:linear-gradient(135deg,#020617,#0f172a);
   color:white;
   text-align:center;
-  padding:40px;
+  padding:30px;
 }
 .container{
   max-width:800px;
@@ -25,7 +23,7 @@ body{
 }
 h1{margin-bottom:30px;}
 .tool{
-  margin-bottom:45px;
+  margin-bottom:40px;
   padding:25px;
   background:#0f172a;
   border-radius:15px;
@@ -45,7 +43,6 @@ select,input{margin:10px;padding:10px;border-radius:6px;border:none;}
 .download{margin-top:15px;}
 </style>
 </head>
-
 <body>
 <div class="container">
 <h1>AI Translator Tools</h1>
@@ -112,10 +109,11 @@ select,input{margin:10px;padding:10px;border-radius:6px;border:none;}
 
 <script>
 const API="https://video-translator-api.maximhot.workers.dev/"
-let currentVideo=null
+let currentVideo=null;
 const { createFFmpeg, fetchFile } = FFmpeg;
 const ffmpeg = createFFmpeg({ log: true });
 
+// -------- VIDEO SRT --------
 async function generateSRT(){
   const file=document.getElementById("videoInput").files[0];
   if(!file){alert("Upload video first"); return;}
@@ -134,12 +132,15 @@ async function generateSRT(){
     const url=URL.createObjectURL(blob);
     html+=`
       <div class="download">
-        <a href="${url}" download="${lang}.srt"><button>Download ${lang.toUpperCase()} SRT</button></a>
+        <a href="${url}" download="${lang}.srt">
+          <button>Download ${lang.toUpperCase()} SRT</button>
+        </a>
       </div>`;
   }
   document.getElementById("videoDownloads").innerHTML=html;
 }
 
+// -------- BURN-IN VIDEO --------
 async function burnSubtitles(){
   if(!currentVideo){alert("Generate subtitles first"); return;}
   const lang=[...document.getElementById("langSelect").selectedOptions][0].value;
@@ -149,12 +150,16 @@ async function burnSubtitles(){
   document.getElementById("videoDownloads").innerHTML="Burning subtitles...";
   const res=await fetch(API+"burn",{method:"POST",body:form});
   const data=await res.json();
+  // Worker vraća signed URL koji važi 10 minuta
   document.getElementById("videoDownloads").innerHTML=`
     <div class="download">
-      <a href="${data.url}" target="_blank"><button>Download Video With Subtitles</button></a>
+      <a href="${data.url}" target="_blank">
+        <button>Download Video With Subtitles</button>
+      </a>
     </div>`;
 }
 
+// -------- YOUTUBE SUBS --------
 async function youtubeSubs(){
   const url=document.getElementById("youtubeURL").value;
   const lang=document.getElementById("ytLang").value;
@@ -162,12 +167,17 @@ async function youtubeSubs(){
   document.getElementById("ytDownload").innerHTML="Generating...";
   const res=await fetch(API+"youtube",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url,lang:lang})});
   const data=await res.json();
+  const blob=new Blob([data.srt],{type:"text/plain"});
+  const link = URL.createObjectURL(blob);
   document.getElementById("ytDownload").innerHTML=`
     <div class="download">
-      <a href="${data.srt}" target="_blank"><button>Download SRT</button></a>
+      <a href="${link}" download="youtube_${lang}.srt">
+        <button>Download SRT</button>
+      </a>
     </div>`;
 }
 
+// -------- DOCUMENT TRANSLATOR --------
 async function translateDoc(){
   const file=document.getElementById("docInput").files[0];
   if(!file){alert("Upload document"); return;}
@@ -180,7 +190,9 @@ async function translateDoc(){
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
   document.getElementById("docDownload").innerHTML=`
-    <a href="${url}" download="translated.txt"><button>Download Translated Document</button></a>`;
+    <a href="${url}" download="translated.txt">
+      <button>Download Translated Document</button>
+    </a>`;
 }
 </script>
 
