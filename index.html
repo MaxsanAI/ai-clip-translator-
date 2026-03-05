@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,151 +7,158 @@
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.11/dist/ffmpeg.min.js"></script>
 <style>
 body{
-font-family:Arial, Helvetica, sans-serif;
-background:linear-gradient(135deg,#020617,#0f172a);
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(135deg,#020617,#0f172a);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
 }
 .card{
-background:#1e293b;
-padding:30px;
-border-radius:20px;
-width:90%;
-max-width:420px;
-box-shadow:0 20px 50px rgba(0,0,0,0.6);
+  background:#1e293b;
+  padding:30px;
+  border-radius:20px;
+  width:90%;
+  max-width:420px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.6);
 }
 h1{
-text-align:center;
-margin-bottom:20px;
+  text-align:center;
+  margin-bottom:20px;
 }
 .dropzone{
-border:2px dashed #6366f1;
-padding:35px;
-border-radius:15px;
-text-align:center;
-cursor:pointer;
-color:#94a3b8;
+  border:2px dashed #6366f1;
+  padding:35px;
+  border-radius:15px;
+  text-align:center;
+  cursor:pointer;
+  color:#94a3b8;
 }
 .dropzone:hover{
-background:#0f172a;
+  background:#0f172a;
 }
 select,button{
-width:100%;
-padding:12px;
-margin-top:12px;
-border-radius:10px;
-border:none;
-font-size:15px;
+  width:100%;
+  padding:12px;
+  margin-top:12px;
+  border-radius:10px;
+  border:none;
+  font-size:15px;
 }
 select{
-height:140px;
+  height:140px;
 }
 button{
-background:#6366f1;
-color:white;
-font-weight:bold;
-cursor:pointer;
+  background:#6366f1;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
 }
 button:hover{
-background:#4f46e5;
+  background:#4f46e5;
 }
 .progress{
-margin-top:15px;
-height:10px;
-background:#334155;
-border-radius:10px;
-overflow:hidden;
+  margin-top:15px;
+  height:10px;
+  background:#334155;
+  border-radius:10px;
+  overflow:hidden;
 }
 .bar{
-height:100%;
-width:0%;
-background:#22c55e;
-transition:0.3s;
+  height:100%;
+  width:0%;
+  background:#22c55e;
+  transition:0.3s;
 }
 .status{
-margin-top:12px;
-text-align:center;
-color:#94a3b8;
-word-break:break-word;
+  margin-top:12px;
+  text-align:center;
+  color:#94a3b8;
+  word-break:break-word;
 }
 .footer{
-margin-top:15px;
-text-align:center;
-font-size:12px;
-color:#64748b;
+  margin-top:15px;
+  text-align:center;
+  font-size:12px;
+  color:#64748b;
+}
+a.srt-link{
+  display:block;
+  color:#94a3b8;
+  text-decoration:underline;
+  cursor:pointer;
+  margin-top:5px;
 }
 </style>
 </head>
-
 <body>
 <div class="card">
-<h1>AI Video Translator</h1>
+  <h1>AI Video Translator</h1>
 
-<div class="dropzone" id="dropzone">
-Drag & Drop Video Here
-<br><br>
-or click to upload
-<input type="file" id="videoInput" accept="video/*" hidden>
-</div>
+  <div class="dropzone" id="dropzone">
+    Drag & Drop Video Here
+    <br><br>
+    or click to upload
+    <input type="file" id="videoInput" accept="video/*" hidden>
+  </div>
 
-<select id="languageSelect" multiple>
-<option value="en">English</option>
-<option value="es">Spanish</option>
-<option value="de">German</option>
-<option value="fr">French</option>
-<option value="sr">Serbian</option>
-<option value="it">Italian</option>
-<option value="pt">Portuguese</option>
-<option value="nl">Dutch</option>
-<option value="pl">Polish</option>
-<option value="tr">Turkish</option>
-<option value="ar">Arabic</option>
-<option value="zh">Chinese</option>
-</select>
+  <select id="languageSelect" multiple>
+    <option value="en">English</option>
+    <option value="es">Spanish</option>
+    <option value="de">German</option>
+    <option value="fr">French</option>
+    <option value="sr">Serbian</option>
+    <option value="it">Italian</option>
+    <option value="pt">Portuguese</option>
+    <option value="nl">Dutch</option>
+    <option value="pl">Polish</option>
+    <option value="tr">Turkish</option>
+    <option value="ar">Arabic</option>
+    <option value="zh">Chinese</option>
+  </select>
 
-<button onclick="processVideo()">Process Video</button>
-<div class="progress"><div class="bar" id="bar"></div></div>
-<div id="status" class="status"></div>
-<div class="footer">
-Free version: 3 minute video • 2 videos per day • max 3 languages
-</div>
+  <button onclick="processVideo()">Process Video</button>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <div id="status" class="status"></div>
+  <div class="footer">
+    Free version: 3 minute video • 2 videos per day • max 3 languages
+  </div>
 </div>
 
 <script>
-const dropzone=document.getElementById("dropzone")
-const input=document.getElementById("videoInput")
-let file=null
+const dropzone = document.getElementById("dropzone");
+const input = document.getElementById("videoInput");
+let file = null;
 
-dropzone.onclick=()=>input.click()
-
-input.onchange=e=>{
-file=e.target.files[0]
-dropzone.innerHTML=file.name
-checkVideo()
+dropzone.onclick = () => input.click();
+input.onchange = e => {
+  file = e.target.files[0];
+  dropzone.innerHTML = file.name;
+  checkVideo();
 }
-
-dropzone.ondragover=e=>{e.preventDefault()}
-dropzone.ondrop=e=>{
-e.preventDefault()
-file=e.dataTransfer.files[0]
-dropzone.innerHTML=file.name
-checkVideo()
+dropzone.ondragover = e => e.preventDefault();
+dropzone.ondrop = e => {
+  e.preventDefault();
+  file = e.dataTransfer.files[0];
+  dropzone.innerHTML = file.name;
+  checkVideo();
 }
 
 function checkVideo(){
-const status=document.getElementById("status")
-if(!file) return
-const video=document.createElement("video")
-video.preload="metadata"
-video.onloadedmetadata=function(){
-window.URL.revokeObjectURL(video.src)
-if(video.duration>180){status.innerHTML="Video must be under 3 minutes";file=null}
-}
-video.src=URL.createObjectURL(file)
+  const status = document.getElementById("status");
+  if(!file) return;
+  const video = document.createElement("video");
+  video.preload = "metadata";
+  video.onloadedmetadata = function(){
+    window.URL.revokeObjectURL(video.src);
+    if(video.duration > 180){
+      status.innerHTML = "Video must be under 3 minutes";
+      file = null;
+    }
+  }
+  video.src = URL.createObjectURL(file);
 }
 
 // ---- FFmpeg setup for burn-in subtitles ----
@@ -162,17 +168,14 @@ const ffmpeg = createFFmpeg({ log: true });
 async function burnInVideo(videoFile, srtContent){
   const status = document.getElementById("status");
   if(!ffmpeg.isLoaded()){status.innerHTML="Loading FFmpeg..."; await ffmpeg.load();}
-
-  ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
-  ffmpeg.FS('writeFile', 'subs.srt', srtContent);
-
+  ffmpeg.FS('writeFile','input.mp4', await fetchFile(videoFile));
+  ffmpeg.FS('writeFile','subs.srt', srtContent);
   status.innerHTML="Burning subtitles...";
   await ffmpeg.run('-i','input.mp4','-vf','subtitles=subs.srt','output.mp4');
-
   const data = ffmpeg.FS('readFile','output.mp4');
   const url = URL.createObjectURL(new Blob([data.buffer], {type:'video/mp4'}));
   const a = document.createElement('a');
-  a.href=url;
+  a.href = url;
   a.download='video_subtitled.mp4';
   a.click();
   status.innerHTML="Video ready with subtitles!";
@@ -180,57 +183,71 @@ async function burnInVideo(videoFile, srtContent){
 
 // ---- Main video processing ----
 async function processVideo(){
-const languages=[...document.getElementById("languageSelect").selectedOptions]
-const status=document.getElementById("status")
-const bar=document.getElementById("bar")
+  const languages = [...document.getElementById("languageSelect").selectedOptions].map(o=>o.value);
+  const status = document.getElementById("status");
+  const bar = document.getElementById("bar");
 
-if(!file){status.innerHTML="Upload a video first";return}
-if(languages.length===0){status.innerHTML="Select at least one language";return}
-if(languages.length>3){status.innerHTML="Free version allows max 3 languages";return}
+  if(!file){status.innerHTML="Upload a video first"; return;}
+  if(languages.length===0){status.innerHTML="Select at least one language"; return;}
+  if(languages.length>3){status.innerHTML="Free version allows max 3 languages"; return;}
 
-status.innerHTML="Uploading video..."
-bar.style.width="0%"
+  status.innerHTML="Uploading video...";
+  bar.style.width="0%";
 
-const formData=new FormData()
-formData.append("video",file)
-languages.forEach(lang=>formData.append("languages",lang))
+  const formData = new FormData();
+  formData.append("video", file);
+  languages.forEach(lang => formData.append("languages", lang));
 
-try{
-const xhr=new XMLHttpRequest()
-xhr.open("POST","https://video-translator-api.maximhot.workers.dev/",true)
+  try{
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST","https://video-translator-api.maximhot.workers.dev/",true);
 
-xhr.upload.onprogress=function(e){
-if(e.lengthComputable){
-const percent=Math.round((e.loaded/e.total)*100)
-bar.style.width=percent+"%"
-status.innerHTML=`Uploading video... ${percent}%`
-}
-}
+    xhr.upload.onprogress = function(e){
+      if(e.lengthComputable){
+        const percent = Math.round((e.loaded/e.total)*100);
+        bar.style.width = percent+"%";
+        status.innerHTML=`Uploading video... ${percent}%`;
+      }
+    }
 
-xhr.onload=async function(){
-if(xhr.status===200){
-const res=JSON.parse(xhr.responseText)
-status.innerHTML="Upload complete! Generating SRT...";
-bar.style.width="100%";
+    xhr.onload = async function(){
+      if(xhr.status===200){
+        const res = JSON.parse(xhr.responseText);
+        status.innerHTML="Upload complete! Generating SRT...";
+        bar.style.width="100%";
 
-for(const lang in res.subtitles){
-  const srtContent=res.subtitles[lang];
-  const link = document.createElement("a");
-  link.href="#";
-  link.innerHTML=`Download ${lang} SRT`;
-  link.onclick=()=>burnInVideo(file,srtContent);
-  status.appendChild(link);
-  status.appendChild(document.createElement("br"));
-}
+        // ---- Download link za svaki SRT ----
+        for(const lang in res.subtitles){
+          const srtContent = res.subtitles[lang];
+          const blob = new Blob([srtContent], {type:"text/plain"});
+          const url = URL.createObjectURL(blob);
 
-}else{
-status.innerHTML="Upload failed"
-bar.style.width="0%"
-}
-}
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `subtitles_${lang}.srt`;
+          link.innerHTML = `Download ${lang} SRT`;
+          link.className = "srt-link";
 
-xhr.send(formData)
-}catch(err){status.innerHTML="Error uploading video";console.error(err)}
+          // Opcionalno: klik burn-inuje video
+          link.onclick = (e)=>{
+            e.preventDefault();
+            burnInVideo(file, srtContent);
+          }
+
+          status.appendChild(link);
+        }
+
+      } else {
+        status.innerHTML="Upload failed";
+        bar.style.width="0%";
+      }
+    }
+
+    xhr.send(formData);
+  }catch(err){
+    status.innerHTML="Error uploading video";
+    console.error(err);
+  }
 }
 </script>
 </body>
