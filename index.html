@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Video Translator</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.card{
+background:#1e293b;
+padding:30px;
+border-radius:20px;
+width:90%;
+max-width:400px;
+box-shadow:0 0 30px rgba(0,0,0,0.6);
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+}
+
+input,select,button{
+
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+}
+
+button{
+background:#6366f1;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+background:#4f46e5;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>AI Video Translator</h1>
+
+<input type="file" accept="video/*">
+
+<select multiple>
+
+<option>English</option>
+<option>Spanish</option>
+<option>German</option>
+<option>French</option>
+<option>Serbian</option>
+<option>Italian</option>
+<option>Arabic</option>
+<option>Chinese</option>
+
+</select>
+
+<button>Process Video</button>
+
+</div>
+
+</body>
+</html>
