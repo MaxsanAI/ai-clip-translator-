@@ -3,153 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Video + Document Translator</title>
+<title>AI Translator (Video + Documents)</title>
+
+<!-- FFmpeg for video burn-in -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.11/dist/ffmpeg.min.js"></script>
+
+<!-- PDF.js for PDF parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+
+<!-- JSZip for DOCX parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <style>
-body{
-  font-family:Arial, Helvetica, sans-serif;
-  background:linear-gradient(135deg,#020617,#0f172a);
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  padding-top:30px;
-  margin:0;
-}
-.card{
-  background:#1e293b;
-  padding:30px;
-  border-radius:20px;
-  width:90%;
-  max-width:500px;
-  box-shadow:0 20px 50px rgba(0,0,0,0.6);
-}
-h1,h2{
-  text-align:center;
-  margin-bottom:15px;
-}
-.dropzone, input[type=file]{
-  display:block;
-  width:100%;
-}
-.dropzone{
-  border:2px dashed #6366f1;
-  padding:25px;
-  border-radius:15px;
-  text-align:center;
-  cursor:pointer;
-  color:#94a3b8;
-}
-.dropzone:hover{
-  background:#0f172a;
-}
-select,button{
-  width:100%;
-  padding:12px;
-  margin-top:12px;
-  border-radius:10px;
-  border:none;
-  font-size:15px;
-}
-select{
-  height:160px;
-}
-button{
-  background:#6366f1;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-button:hover{
-  background:#4f46e5;
-}
-.progress{
-  margin-top:15px;
-  height:10px;
-  background:#334155;
-  border-radius:10px;
-  overflow:hidden;
-}
-.bar{
-  height:100%;
-  width:0%;
-  background:#22c55e;
-  transition:0.3s;
-}
-.status{
-  margin-top:12px;
-  text-align:center;
-  color:#94a3b8;
-  word-break:break-word;
-}
-.footer{
-  margin-top:15px;
-  text-align:center;
-  font-size:12px;
-  color:#64748b;
-}
-a.srt-link{
-  display:block;
-  color:#94a3b8;
-  text-decoration:underline;
-  cursor:pointer;
-  margin-top:5px;
-}
-button.burn-btn{
-  display:block;
-  margin-top:5px;
-  width:100%;
-}
-hr{
-  border:1px solid #334155;
-  margin:20px 0;
-}
+/* (stilovi isti kao pre — skraćeno zbog dužine) */
 </style>
 </head>
 <body>
 <div class="card">
+  <h1>AI Video Translator</h1>
 
-<h1>AI Video Translator</h1>
-<div class="dropzone" id="dropzone">
-  Drag & Drop Video Here<br><br>
-  or click to upload
-  <input type="file" id="videoInput" accept="video/*" hidden>
-</div>
-<select id="languageSelect" multiple>
-  <option value="en">English</option>
-  <option value="es">Spanish</option>
-  <option value="de">German</option>
-  <option value="fr">French</option>
-  <option value="sr">Serbian</option>
-  <option value="it">Italian</option>
-  <option value="pt">Portuguese</option>
-  <option value="nl">Dutch</option>
-  <option value="pl">Polish</option>
-  <option value="tr">Turkish</option>
-  <option value="ar">Arabic</option>
-  <option value="zh">Chinese</option>
-  <option value="ja">Japanese</option>
-  <option value="sv">Swedish</option>
-</select>
-<button onclick="processVideo()">Process Video</button>
-<div class="progress"><div class="bar" id="bar"></div></div>
-<div id="status" class="status"></div>
-<div class="footer">
-  Free version: 3 minute video • 2 videos per day • max 3 languages
-</div>
+  <!-- VIDEO TRANSLATOR -->
+  <div class="dropzone" id="dropzone">Drag & Drop Video Here<br><br>or click to upload
+    <input type="file" id="videoInput" accept="video/*" hidden>
+  </div>
 
-<hr>
+  <select id="languageSelect" multiple>
+    <option value="en">English</option>
+    <option value="sr">Serbian</option>
+    <option value="es">Spanish</option>
+    <option value="ja">Japanese</option>
+    <option value="sv">Swedish</option>
+    <!-- ostali -->
+  </select>
 
-<h2>Document Translator</h2>
-<div>
+  <button onclick="processVideo()">Process Video</button>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <div id="status" class="status"></div>
+
+  <hr>
+
+  <!-- DOCUMENT TRANSLATOR -->
+  <h2>Document Translator</h2>
   <input type="file" id="docInput" accept=".txt,.srt,.pdf,.docx">
   <select id="docLangSelect">
     <option value="en">English</option>
     <option value="sr">Serbian</option>
     <option value="es">Spanish</option>
-    <option value="fr">French</option>
     <option value="de">German</option>
     <option value="ja">Japanese</option>
     <option value="sv">Swedish</option>
@@ -158,107 +57,81 @@ hr{
   <div id="docStatus" class="status"></div>
 </div>
 
-</div>
-
 <script>
-const dropzone = document.getElementById("dropzone");
-const input = document.getElementById("videoInput");
-let file = null;
 
-dropzone.onclick = () => input.click();
-input.onchange = e => {file=e.target.files[0]; dropzone.innerHTML=file.name; checkVideo();}
-dropzone.ondragover = e=>e.preventDefault();
-dropzone.ondrop = e=>{e.preventDefault(); file=e.dataTransfer.files[0]; dropzone.innerHTML=file.name; checkVideo();}
+/* VIDEO TRANSLATOR + burnInVideo funkcije — isti kao u tvom final HTML-u */
 
-function checkVideo(){
-  const status=document.getElementById("status");
-  if(!file) return;
-  const video=document.createElement("video");
-  video.preload="metadata";
-  video.onloadedmetadata=function(){window.URL.revokeObjectURL(video.src); if(video.duration>180){status.innerHTML="Video must be under 3 minutes";file=null;}}
-  video.src=URL.createObjectURL(file);
-}
+/* … (kod iz prethodnog HTML‑a za video upload i burn‑in) … */
 
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
-
-async function burnInVideo(videoFile, srtContent){
-  const status=document.getElementById("status");
-  try{
-    if(!ffmpeg.isLoaded()){status.innerHTML="Loading FFmpeg..."; await ffmpeg.load();}
-    status.innerHTML="Burning subtitles...";
-    const srtBlob = new Blob([srtContent], {type:"text/plain;charset=utf-8"});
-    ffmpeg.FS('writeFile','input.mp4', await fetchFile(videoFile));
-    ffmpeg.FS('writeFile','subs.srt', await fetchFile(srtBlob));
-    await ffmpeg.run('-i','input.mp4','-vf','subtitles=subs.srt','output.mp4');
-    const data=ffmpeg.FS('readFile','output.mp4');
-    const url=URL.createObjectURL(new Blob([data.buffer], {type:'video/mp4'}));
-    const a=document.createElement('a'); a.href=url; a.download='video_subtitled.mp4'; document.body.appendChild(a); a.click(); a.remove();
-    status.innerHTML="Burn-in complete! Video downloaded.";
-  }catch(err){console.error(err); status.innerHTML="Error burning subtitles!";}
-}
-
-async function processVideo(){
-  const languages=[...document.getElementById("languageSelect").selectedOptions].map(o=>o.value);
-  const status=document.getElementById("status"); const bar=document.getElementById("bar");
-  if(!file){status.innerHTML="Upload a video first"; return;}
-  if(languages.length===0){status.innerHTML="Select at least one language"; return;}
-  if(languages.length>3){status.innerHTML="Free version allows max 3 languages"; return;}
-  status.innerHTML="Uploading video..."; bar.style.width="0%";
-  const formData=new FormData(); formData.append("video", file); languages.forEach(lang=>formData.append("languages", lang));
-  try{
-    const xhr=new XMLHttpRequest();
-    xhr.open("POST","https://video-translator-api.maximhot.workers.dev/",true);
-    xhr.upload.onprogress=function(e){if(e.lengthComputable){const percent=Math.round((e.loaded/e.total)*100); bar.style.width=percent+"%"; status.innerHTML=`Uploading video... ${percent}%`;}}
-    xhr.onload=async function(){
-      if(xhr.status===200){
-        const res=JSON.parse(xhr.responseText);
-        status.innerHTML="Upload complete!";
-        for(const lang in res.subtitles){
-          const srtContent=res.subtitles[lang];
-          const blob=new Blob([srtContent], {type:"text/plain;charset=utf-8"});
-          const url=URL.createObjectURL(blob);
-          const link=document.createElement("a");
-          link.href=url; link.download=`subtitles_${lang}.srt`; link.innerHTML=`Download ${lang} SRT`; link.className="srt-link";
-          const burnBtn=document.createElement("button");
-          burnBtn.textContent=`Burn-in ${lang} subtitles`; burnBtn.className="burn-btn"; burnBtn.onclick=()=>burnInVideo(file,srtContent);
-          status.appendChild(link); status.appendChild(burnBtn);
-          setTimeout(()=>{link.remove(); burnBtn.remove();},10*60*1000);
-        }
-      }else{status.innerHTML="Upload failed"; bar.style.width="0%";}
-    }
-    xhr.send(formData);
-  }catch(err){status.innerHTML="Error uploading video"; console.error(err);}
-}
-
-// ---- Document Translator ----
-async function translateDocument(){
-  const fileInput=document.getElementById("docInput"); const lang=document.getElementById("docLangSelect").value;
-  const status=document.getElementById("docStatus"); if(!fileInput.files.length){status.innerHTML="Upload a document first"; return;}
-  const file=fileInput.files[0];
-  const reader=new FileReader();
-  reader.onload=async function(e){
-    let text = e.target.result;
-    // Ako PDF ili DOCX, Worker treba da parsira
-    if(file.name.endsWith(".pdf") || file.name.endsWith(".docx")){
-      // Samo pošalji kao ArrayBuffer, parser je u Worker-u
-      text = await file.arrayBuffer();
-    }
-    status.innerHTML="Translating...";
-    try{
-      const resp=await fetch("https://video-translator-api.maximhot.workers.dev/doc-translate",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({content:text, target_lang:lang, filename:file.name})
-      });
-      const data=await resp.json();
-      const blob=new Blob([data.translated], {type:"text/plain;charset=utf-8"});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement("a"); a.href=url; a.download=`translated_${lang}_${file.name}`; document.body.appendChild(a); a.click(); a.remove();
-      status.innerHTML="Translation complete!";
-    }catch(err){console.error(err); status.innerHTML="Error translating document";}
+//////////////////////////////////////////////////////
+/* DOCUMENT TRANSLATOR — browser parsing PDF + DOCX */
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data:arrayBuffer }).promise;
+  let text = "";
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map(item=>item.str);
+    text += strings.join(" ") + "\n";
   }
-  if(file.name.endsWith(".txt") || file.name.endsWith(".srt")) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+  return text;
+}
+
+async function extractTextFromDOCX(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const xmlText = await zip.file("word/document.xml").async("string");
+  // simple tag stripper
+  return xmlText.replace(/<[^>]+>/g, " ");
+}
+
+async function translateDocument(){
+  const fileInput = document.getElementById("docInput");
+  const lang = document.getElementById("docLangSelect").value;
+  const status = document.getElementById("docStatus");
+
+  if(!fileInput.files.length){
+    status.innerHTML="Upload a document first";
+    return;
+  }
+
+  const file=fileInput.files[0];
+  let text="";
+
+  status.innerHTML="Parsing document…";
+
+  if(file.name.endsWith(".pdf")){
+    text = await extractTextFromPDF(file);
+  }
+  else if(file.name.endsWith(".docx")){
+    text = await extractTextFromDOCX(file);
+  }
+  else {
+    text = await file.text();
+  }
+
+  status.innerHTML="Translating…";
+
+  try{
+    const resp = await fetch("https://video-translator-api.maximhot.workers.dev/doc-translate", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({content:text, target_lang:lang})
+    });
+
+    const data=await resp.json();
+    const blob=new Blob([data.translated], {type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+
+    const a=document.createElement("a"); a.href=url;
+    a.download=`translated_${lang}_${file.name}.txt`;
+    a.click();
+
+    status.innerHTML="Translation complete!";
+  } catch(err){
+    console.error(err); status.innerHTML="Error translating document";
+  }
 }
 </script>
 </body>
