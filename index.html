@@ -11,7 +11,7 @@
 <style>
 
 body{
-font-family:Arial;
+font-family:Arial, Helvetica, sans-serif;
 background:linear-gradient(135deg,#020617,#0f172a);
 color:white;
 display:flex;
@@ -40,7 +40,7 @@ margin-bottom:20px;
 .dropzone{
 
 border:2px dashed #6366f1;
-padding:30px;
+padding:35px;
 border-radius:15px;
 text-align:center;
 cursor:pointer;
@@ -64,7 +64,7 @@ font-size:15px;
 }
 
 select{
-height:130px;
+height:140px;
 }
 
 button{
@@ -98,9 +98,18 @@ background:#22c55e;
 
 .status{
 
-margin-top:10px;
+margin-top:12px;
 text-align:center;
 color:#94a3b8;
+
+}
+
+.footer{
+
+margin-top:15px;
+text-align:center;
+font-size:12px;
+color:#64748b;
 
 }
 
@@ -146,6 +155,10 @@ or click to upload
 
 <div id="status" class="status"></div>
 
+<div class="footer">
+Free version: 3 minute video • 2 videos per day • max 3 languages
+</div>
+
 </div>
 
 <script>
@@ -160,6 +173,7 @@ dropzone.onclick=()=>input.click()
 input.onchange=e=>{
 file=e.target.files[0]
 dropzone.innerHTML=file.name
+checkVideo()
 }
 
 dropzone.ondragover=e=>{
@@ -171,11 +185,41 @@ e.preventDefault()
 
 file=e.dataTransfer.files[0]
 dropzone.innerHTML=file.name
+
+checkVideo()
+}
+
+function checkVideo(){
+
+const status=document.getElementById("status")
+
+if(!file) return
+
+const video=document.createElement("video")
+
+video.preload="metadata"
+
+video.onloadedmetadata=function(){
+
+window.URL.revokeObjectURL(video.src)
+
+if(video.duration>180){
+
+status.innerHTML="Video must be under 3 minutes"
+file=null
+
+}
+
+}
+
+video.src=URL.createObjectURL(file)
+
 }
 
 function processVideo(){
 
 const languages=[...document.getElementById("languageSelect").selectedOptions]
+
 const status=document.getElementById("status")
 const bar=document.getElementById("bar")
 
@@ -207,6 +251,7 @@ let progress=0
 const interval=setInterval(()=>{
 
 progress+=10
+
 bar.style.width=progress+"%"
 
 if(progress===30){
@@ -214,10 +259,14 @@ status.innerHTML="Analyzing speech..."
 }
 
 if(progress===60){
-status.innerHTML="Translating subtitles..."
+status.innerHTML="Generating subtitles..."
 }
 
-if(progress===90){
+if(progress===80){
+status.innerHTML="Translating languages..."
+}
+
+if(progress===95){
 status.innerHTML="Preparing video..."
 }
 
@@ -225,7 +274,7 @@ if(progress>=100){
 
 clearInterval(interval)
 
-status.innerHTML="Done! (AI backend coming next)"
+status.innerHTML="Done! (AI processing coming next)"
 
 }
 
@@ -236,5 +285,4 @@ status.innerHTML="Done! (AI backend coming next)"
 </script>
 
 </body>
-
 </html>
