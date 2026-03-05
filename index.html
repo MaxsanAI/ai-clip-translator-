@@ -118,14 +118,15 @@ select,input{
 
 <script>
 const API="https://video-translator-api.maximhot.workers.dev/"
-let currentVideo=null
+let currentVideo=null;
+const srtCache = {}; // čuva generisane SRT za svaki jezik
 
 // ---- VIDEO SRT ----
-async function generateSRT(){
+async function generateSRT(langOnly) {
   const file=document.getElementById("videoInput").files[0];
   if(!file){alert("Upload video first"); return;}
   currentVideo=file;
-  const langs=[...document.getElementById("langSelect").selectedOptions].map(o=>o.value);
+  const langs = langOnly ? [langOnly] : [...document.getElementById("langSelect").selectedOptions].map(o=>o.value);
   const form=new FormData();
   form.append("video",file);
   langs.forEach(l=>form.append("languages",l));
@@ -136,6 +137,7 @@ async function generateSRT(){
   let html="";
   for(const lang in data.subtitles){
     const srt=data.subtitles[lang];
+    srtCache[lang] = srt; // čuvamo u cache za burn-in
     const blob=new Blob([srt],{type:"text/plain"});
     const url=URL.createObjectURL(blob);
     html+=`
@@ -144,6 +146,7 @@ async function generateSRT(){
       </div>`;
   }
   statusDiv.innerHTML=html;
+  return srtCache;
 }
 
 // ---- BURN-IN VIDEO ----
@@ -151,33 +154,27 @@ const { createFFmpeg, fetchFile } = FFmpeg;
 const ffmpeg = createFFmpeg({ log: true });
 
 async function burnSubtitles(){
-  if(!currentVideo){alert("Generate subtitles first"); return;}
+  if(!currentVideo){alert("Upload video first"); return;}
   const lang=[...document.getElementById("langSelect").selectedOptions][0].value;
   const statusDiv=document.getElementById("videoDownloads");
-  statusDiv.innerHTML="Burning subtitles in browser...";
+  statusDiv.innerHTML="Processing SRT and burning subtitles...";
 
-  // Pronađi SRT Blob umesto href
-  const srtLink = [...document.querySelectorAll('.download a')]
-                    .find(a => a.download.startsWith(lang));
-  if(!srtLink){alert("SRT file not found!"); return;}
-  const srtResponse = await fetch(srtLink.href);
-  const srtBlob = await srtResponse.blob();
+  // Ako nemamo SRT u cache, generiši ga
+  if(!srtCache[lang]){
+    await generateSRT(lang);
+  }
 
-  // Load ffmpeg
+  const srtData = new Uint8Array(new TextEncoder().encode(srtCache[lang]));
+
   if(!ffmpeg.isLoaded()) await ffmpeg.load();
 
-  // Pretvori video i SRT u Uint8Array
   const videoData = await fetchFile(currentVideo);
-  const srtData = new Uint8Array(await srtBlob.arrayBuffer());
 
-  // Write video i subtitle u FFmpeg FS
   ffmpeg.FS('writeFile', 'input.mp4', videoData);
   ffmpeg.FS('writeFile', 'subs.srt', srtData);
 
-  // Burn-in
   await ffmpeg.run('-i','input.mp4','-vf',`subtitles=subs.srt:force_style='FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF&'`,'output.mp4');
 
-  // Download
   const data = ffmpeg.FS('readFile','output.mp4');
   const url = URL.createObjectURL(new Blob([data.buffer], {type: 'video/mp4'}));
   const a = document.createElement('a');
@@ -185,7 +182,19 @@ async function burnSubtitles(){
   a.download = 'video_subtitled.mp4';
   a.click();
 
-  statusDiv.innerHTML="Video ready!";
+  // Omogući i SRT download
+  const srtBlob = new Blob([srtCache[lang]], {type:'text/plain'});
+  const srtUrl = URL.createObjectURL(srtBlob);
+  const srtA = document.createElement('a');
+  srtA.href = srtUrl;
+  srtA.download = `${lang}.srt`;
+  srtA.textContent = `Download ${lang.toUpperCase()} SRT`;
+  const div = document.createElement('div');
+  div.className='download';
+  div.appendChild(srtA);
+  statusDiv.appendChild(div);
+
+  statusDiv.innerHTML+="<br>Video ready!";
 }
 
 // ---- YOUTUBE SUBS ----
