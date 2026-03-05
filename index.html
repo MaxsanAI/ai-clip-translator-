@@ -241,6 +241,12 @@ async function processVideo(){
 
           status.appendChild(link);
           status.appendChild(burnBtn);
+
+          // ---- Automatsko uklanjanje posle 10 minuta ----
+          setTimeout(() => {
+            link.remove();
+            burnBtn.remove();
+          }, 10*60*1000); // 10 minuta = 600000 ms
         }
 
       } else {
